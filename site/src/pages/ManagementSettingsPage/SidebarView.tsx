@@ -10,7 +10,7 @@ import { Sidebar as BaseSidebar } from "components/Sidebar/Sidebar";
 import { Stack } from "components/Stack/Stack";
 import { UserAvatar } from "components/UserAvatar/UserAvatar";
 import { type ClassName, useClassName } from "hooks/useClassName";
-import { linkToAuditing, linkToUsers, withFilter } from "modules/navigation";
+import { linkToUsers } from "modules/navigation";
 
 interface SidebarProps {
   /** True if a settings page is being viewed. */
@@ -116,11 +116,6 @@ const DeploymentSettingsNavigation: FC<DeploymentSettingsNavigationProps> = (
           {props.permissions.viewAllUsers && (
             <SidebarNavSubItem href={linkToUsers.slice(1)}>
               Users
-            </SidebarNavSubItem>
-          )}
-          {props.permissions.viewAnyAuditLog && (
-            <SidebarNavSubItem href={linkToAuditing.slice(1)}>
-              Auditing
             </SidebarNavSubItem>
           )}
         </Stack>
@@ -246,19 +241,6 @@ const OrganizationSettingsNavigation: FC<
               href={urlForSubpage(props.organization.name, "groups")}
             >
               Groups
-            </SidebarNavSubItem>
-          )}
-          {/* For now redirect to the site-wide audit page with the organization
-              pre-filled into the filter.  Based on user feedback we might want
-              to serve a copy of the audit page or even delete this link. */}
-          {props.permissions.auditOrganization && (
-            <SidebarNavSubItem
-              href={`/deployment${withFilter(
-                linkToAuditing,
-                `organization:${props.organization.name}`,
-              )}`}
-            >
-              Auditing
             </SidebarNavSubItem>
           )}
         </Stack>

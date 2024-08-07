@@ -376,7 +376,6 @@ export const router = createBrowserRouter(
               <Route index element={<OrganizationSettingsPage />} />
               <Route path="members" element={<OrganizationMembersPage />} />
               {groupsRouter()}
-              <Route path="auditing" element={<></>} />
             </Route>
           </Route>
 
@@ -410,7 +409,6 @@ export const router = createBrowserRouter(
             <Route path="users" element={<UsersPage />} />
             <Route path="users/create" element={<CreateUserPage />} />
             {groupsRouter()}
-            <Route path="audit" element={<AuditPage />} />
           </Route>
 
           <Route path="/settings" element={<UserSettingsLayout />}>
