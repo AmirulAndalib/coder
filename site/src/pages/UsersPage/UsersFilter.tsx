@@ -1,13 +1,8 @@
+import { Filter, MenuSkeleton, type useFilter } from "components/Filter/Filter";
 import {
 	SelectFilter,
 	type SelectFilterOption,
 } from "components/Filter/SelectFilter";
-import {
-	Filter,
-	MenuSkeleton,
-	SearchFieldSkeleton,
-	type useFilter,
-} from "components/Filter/filter";
 import {
 	type UseFilterMenuOptions,
 	useFilterMenu,
@@ -24,7 +19,7 @@ const userFilterQuery = {
 export const useStatusFilterMenu = ({
 	value,
 	onChange,
-}: Pick<UseFilterMenuOptions<SelectFilterOption>, "value" | "onChange">) => {
+}: Pick<UseFilterMenuOptions, "value" | "onChange">) => {
 	const statusOptions: SelectFilterOption[] = [
 		{
 			value: "active",
@@ -78,12 +73,7 @@ export const UsersFilter: FC<UsersFilterProps> = ({ filter, error, menus }) => {
 			filter={filter}
 			error={error}
 			options={<StatusMenu {...menus.status} />}
-			skeleton={
-				<>
-					<SearchFieldSkeleton />
-					<MenuSkeleton />
-				</>
-			}
+			optionsSkeleton={<MenuSkeleton />}
 		/>
 	);
 };

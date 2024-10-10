@@ -22,6 +22,7 @@ import (
 
 	"github.com/coder/coder/v2/coderd/tracing"
 	"github.com/coder/coder/v2/codersdk"
+	"github.com/coder/coder/v2/codersdk/healthsdk"
 	"github.com/coder/coder/v2/tailnet"
 )
 
@@ -50,7 +51,7 @@ type AgentConnOptions struct {
 }
 
 func (c *AgentConn) agentAddress() netip.Addr {
-	return tailnet.IPFromUUID(c.opts.AgentID)
+	return tailnet.TailscaleServicePrefix.AddrFromUUID(c.opts.AgentID)
 }
 
 // AwaitReachable waits for the agent to be reachable.
@@ -238,6 +239,23 @@ func (c *AgentConn) ListeningPorts(ctx context.Context) (codersdk.WorkspaceAgent
 	}
 
 	var resp codersdk.WorkspaceAgentListeningPortsResponse
+	return resp, json.NewDecoder(res.Body).Decode(&resp)
+}
+
+// Netcheck returns a network check report from the workspace agent.
+func (c *AgentConn) Netcheck(ctx context.Context) (healthsdk.AgentNetcheckReport, error) {
+	ctx, span := tracing.StartSpan(ctx)
+	defer span.End()
+	res, err := c.apiRequest(ctx, http.MethodGet, "/api/v0/netcheck", nil)
+	if err != nil {
+		return healthsdk.AgentNetcheckReport{}, xerrors.Errorf("do request: %w", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return healthsdk.AgentNetcheckReport{}, codersdk.ReadBodyAsError(res)
+	}
+
+	var resp healthsdk.AgentNetcheckReport
 	return resp, json.NewDecoder(res.Body).Decode(&resp)
 }
 

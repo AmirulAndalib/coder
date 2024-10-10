@@ -20,7 +20,6 @@ func createOpts(t *testing.T) *coderdtest.Options {
 	t.Helper()
 
 	dt := coderdtest.DeploymentValues(t)
-	dt.Experiments = []string{string(codersdk.ExperimentNotifications)}
 	return &coderdtest.Options{
 		DeploymentValues: dt,
 	}
@@ -115,7 +114,7 @@ func TestNotificationPreferences(t *testing.T) {
 	t.Run("Initial state", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := testutil.Context(t, testutil.WaitLong)
+		ctx := testutil.Context(t, testutil.WaitSuperLong)
 		api := coderdtest.New(t, createOpts(t))
 		firstUser := coderdtest.CreateFirstUser(t, api)
 
@@ -133,7 +132,7 @@ func TestNotificationPreferences(t *testing.T) {
 	t.Run("Insufficient permissions", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := testutil.Context(t, testutil.WaitLong)
+		ctx := testutil.Context(t, testutil.WaitSuperLong)
 		api := coderdtest.New(t, createOpts(t))
 		firstUser := coderdtest.CreateFirstUser(t, api)
 
@@ -156,7 +155,7 @@ func TestNotificationPreferences(t *testing.T) {
 	t.Run("Admin may read any users' preferences", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := testutil.Context(t, testutil.WaitLong)
+		ctx := testutil.Context(t, testutil.WaitSuperLong)
 		api := coderdtest.New(t, createOpts(t))
 		firstUser := coderdtest.CreateFirstUser(t, api)
 
@@ -174,7 +173,7 @@ func TestNotificationPreferences(t *testing.T) {
 	t.Run("Admin may update any users' preferences", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := testutil.Context(t, testutil.WaitLong)
+		ctx := testutil.Context(t, testutil.WaitSuperLong)
 		api := coderdtest.New(t, createOpts(t))
 		firstUser := coderdtest.CreateFirstUser(t, api)
 
@@ -202,7 +201,7 @@ func TestNotificationPreferences(t *testing.T) {
 	t.Run("Add preferences", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := testutil.Context(t, testutil.WaitLong)
+		ctx := testutil.Context(t, testutil.WaitSuperLong)
 		api := coderdtest.New(t, createOpts(t))
 		firstUser := coderdtest.CreateFirstUser(t, api)
 
@@ -230,7 +229,7 @@ func TestNotificationPreferences(t *testing.T) {
 	t.Run("Modify preferences", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := testutil.Context(t, testutil.WaitLong)
+		ctx := testutil.Context(t, testutil.WaitSuperLong)
 		api := coderdtest.New(t, createOpts(t))
 		firstUser := coderdtest.CreateFirstUser(t, api)
 
@@ -305,7 +304,7 @@ func TestNotificationDispatchMethods(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctx := testutil.Context(t, testutil.WaitShort)
+			ctx := testutil.Context(t, testutil.WaitSuperLong)
 			api := coderdtest.New(t, tc.opts)
 			_ = coderdtest.CreateFirstUser(t, api)
 

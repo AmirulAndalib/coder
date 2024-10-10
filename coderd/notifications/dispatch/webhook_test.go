@@ -1,6 +1,7 @@
 package dispatch_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -27,24 +28,22 @@ func TestWebhook(t *testing.T) {
 	t.Parallel()
 
 	const (
-		titleTemplate = "this is the title ({{.Labels.foo}})"
-		bodyTemplate  = "this is the body ({{.Labels.baz}})"
+		titlePlaintext = "this is the title"
+		titleMarkdown  = "this *is* _the_ title"
+		bodyPlaintext  = "this is the body"
+		bodyMarkdown   = "~this~ is the `body`"
 	)
 
 	msgPayload := types.MessagePayload{
 		Version:          "1.0",
 		NotificationName: "test",
-		Labels: map[string]string{
-			"foo": "bar",
-			"baz": "quux",
-		},
 	}
 
 	tests := []struct {
-		name          string
-		serverURL     string
-		serverTimeout time.Duration
-		serverFn      func(uuid.UUID, http.ResponseWriter, *http.Request)
+		name           string
+		serverURL      string
+		serverDeadline time.Time
+		serverFn       func(uuid.UUID, http.ResponseWriter, *http.Request)
 
 		expectSuccess   bool
 		expectRetryable bool
@@ -59,6 +58,11 @@ func TestWebhook(t *testing.T) {
 				assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 				assert.Equal(t, msgID, payload.MsgID)
 				assert.Equal(t, msgID.String(), r.Header.Get("X-Message-Id"))
+
+				assert.Equal(t, titlePlaintext, payload.Title)
+				assert.Equal(t, titleMarkdown, payload.TitleMarkdown)
+				assert.Equal(t, bodyPlaintext, payload.Body)
+				assert.Equal(t, bodyMarkdown, payload.BodyMarkdown)
 
 				w.WriteHeader(http.StatusOK)
 				_, err = w.Write([]byte(fmt.Sprintf("received %s", payload.MsgID)))
@@ -76,10 +80,13 @@ func TestWebhook(t *testing.T) {
 		},
 		{
 			name:            "timeout",
-			serverTimeout:   time.Nanosecond,
+			serverDeadline:  time.Now().Add(-time.Hour),
 			expectSuccess:   false,
 			expectRetryable: true,
-			expectErr:       "request timeout",
+			serverFn: func(u uuid.UUID, writer http.ResponseWriter, request *http.Request) {
+				t.Fatalf("should not get here")
+			},
+			expectErr: "request timeout",
 		},
 		{
 			name: "non-200 response",
@@ -99,14 +106,20 @@ func TestWebhook(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			timeout := testutil.WaitLong
-			if tc.serverTimeout > 0 {
-				timeout = tc.serverTimeout
+			var (
+				ctx    context.Context
+				cancel context.CancelFunc
+			)
+
+			if !tc.serverDeadline.IsZero() {
+				ctx, cancel = context.WithDeadline(context.Background(), tc.serverDeadline)
+			} else {
+				ctx, cancel = context.WithTimeout(context.Background(), testutil.WaitLong)
 			}
+			t.Cleanup(cancel)
 
 			var (
 				err   error
-				ctx   = testutil.Context(t, timeout)
 				msgID = uuid.New()
 			)
 
@@ -128,7 +141,7 @@ func TestWebhook(t *testing.T) {
 				Endpoint: *serpent.URLOf(endpoint),
 			}
 			handler := dispatch.NewWebhookHandler(cfg, logger.With(slog.F("test", tc.name)))
-			deliveryFn, err := handler.Dispatcher(msgPayload, titleTemplate, bodyTemplate)
+			deliveryFn, err := handler.Dispatcher(msgPayload, titleMarkdown, bodyMarkdown)
 			require.NoError(t, err)
 
 			retryable, err := deliveryFn(ctx, msgID)

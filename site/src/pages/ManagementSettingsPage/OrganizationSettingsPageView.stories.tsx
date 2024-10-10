@@ -1,13 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { chromatic } from "testHelpers/chromatic";
 import {
 	MockDefaultOrganization,
 	MockOrganization,
 } from "testHelpers/entities";
+import { withManagementSettingsProvider } from "testHelpers/storybook";
 import { OrganizationSettingsPageView } from "./OrganizationSettingsPageView";
 
 const meta: Meta<typeof OrganizationSettingsPageView> = {
 	title: "pages/OrganizationSettingsPageView",
 	component: OrganizationSettingsPageView,
+	parameters: { chromatic },
 	args: {
 		organization: MockOrganization,
 	},

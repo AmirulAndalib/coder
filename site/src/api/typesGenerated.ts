@@ -48,6 +48,7 @@ export interface AppHostResponse {
 export interface AppearanceConfig {
 	readonly application_name: string;
 	readonly logo_url: string;
+	readonly docs_url: string;
 	readonly service_banner: BannerConfig;
 	readonly announcement_banners: Readonly<Array<BannerConfig>>;
 	readonly support_links?: Readonly<Array<LinkConfig>>;
@@ -172,8 +173,16 @@ export interface BuildInfoResponse {
 	readonly telemetry: boolean;
 	readonly workspace_proxy: boolean;
 	readonly agent_api_version: string;
+	readonly provisioner_api_version: string;
 	readonly upgrade_message: string;
 	readonly deployment_id: string;
+}
+
+// From codersdk/users.go
+export interface ChangePasswordWithOneTimePasscodeRequest {
+	readonly email: string;
+	readonly password: string;
+	readonly one_time_passcode: string;
 }
 
 // From codersdk/insights.go
@@ -303,14 +312,13 @@ export interface CreateTokenRequest {
 }
 
 // From codersdk/users.go
-export interface CreateUserRequest {
+export interface CreateUserRequestWithOrgs {
 	readonly email: string;
 	readonly username: string;
 	readonly name: string;
 	readonly password: string;
 	readonly login_type: LoginType;
-	readonly disable_login: boolean;
-	readonly organization_id: string;
+	readonly organization_ids: Readonly<Array<string>>;
 }
 
 // From codersdk/workspaces.go
@@ -340,6 +348,15 @@ export interface CreateWorkspaceRequest {
 	readonly ttl_ms?: number;
 	readonly rich_parameter_values?: Readonly<Array<WorkspaceBuildParameter>>;
 	readonly automatic_updates?: AutomaticUpdates;
+}
+
+// From codersdk/deployment.go
+export interface CryptoKey {
+	readonly feature: CryptoKeyFeature;
+	readonly secret: string;
+	readonly deletes_at: string;
+	readonly sequence: number;
+	readonly starts_at: string;
 }
 
 // From codersdk/roles.go
@@ -623,12 +640,25 @@ export interface Group {
 	readonly avatar_url: string;
 	readonly quota_allowance: number;
 	readonly source: GroupSource;
+	readonly organization_name: string;
+	readonly organization_display_name: string;
 }
 
 // From codersdk/groups.go
 export interface GroupArguments {
 	readonly Organization: string;
 	readonly HasMember: string;
+	readonly GroupIDs: Readonly<Array<string>>;
+}
+
+// From codersdk/idpsync.go
+export interface GroupSyncSettings {
+	readonly field: string;
+	readonly mapping: Record<string, Readonly<Array<string>>>;
+	// external type "regexp.Regexp", using "unknown"
+	readonly regex_filter?: unknown;
+	readonly auto_create_missing_groups: boolean;
+	readonly legacy_group_name_mapping?: Record<string, string>;
 }
 
 // From codersdk/workspaceapps.go
@@ -879,6 +909,9 @@ export interface OIDCConfig {
 	readonly email_field: string;
 	readonly auth_url_params: Record<string, string>;
 	readonly ignore_user_info: boolean;
+	readonly organization_field: string;
+	readonly organization_mapping: Record<string, Readonly<Array<string>>>;
+	readonly organization_assign_default: boolean;
 	readonly group_auto_create: boolean;
 	readonly group_regex_filter: string;
 	readonly group_allow_list: string[];
@@ -1000,6 +1033,7 @@ export interface ProvisionerConfig {
 export interface ProvisionerDaemon {
 	readonly id: string;
 	readonly organization_id: string;
+	readonly key_id: string;
 	readonly created_at: string;
 	readonly last_seen_at?: string;
 	readonly name: string;
@@ -1042,7 +1076,27 @@ export interface ProvisionerKey {
 	readonly created_at: string;
 	readonly organization: string;
 	readonly name: string;
-	readonly tags: Record<string, string>;
+	readonly tags: ProvisionerKeyTags;
+}
+
+// From codersdk/provisionerdaemons.go
+export interface ProvisionerKeyDaemons {
+	readonly key: ProvisionerKey;
+	readonly daemons: Readonly<Array<ProvisionerDaemon>>;
+}
+
+// From codersdk/provisionerdaemons.go
+export type ProvisionerKeyTags = Record<string, string>
+
+// From codersdk/workspaces.go
+export interface ProvisionerTiming {
+	readonly job_id: string;
+	readonly started_at: string;
+	readonly ended_at: string;
+	readonly stage: string;
+	readonly source: string;
+	readonly action: string;
+	readonly resource: string;
 }
 
 // From codersdk/workspaceproxy.go
@@ -1108,6 +1162,11 @@ export interface Replica {
 	readonly database_latency: number;
 }
 
+// From codersdk/users.go
+export interface RequestOneTimePasscodeRequest {
+	readonly email: string;
+}
+
 // From codersdk/workspaces.go
 export interface ResolveAutostartResponse {
 	readonly parameter_mismatch: boolean;
@@ -1128,6 +1187,12 @@ export interface Role {
 	readonly site_permissions: Readonly<Array<Permission>>;
 	readonly organization_permissions: Readonly<Array<Permission>>;
 	readonly user_permissions: Readonly<Array<Permission>>;
+}
+
+// From codersdk/idpsync.go
+export interface RoleSyncSettings {
+	readonly field: string;
+	readonly mapping: Record<string, Readonly<Array<string>>>;
 }
 
 // From codersdk/deployment.go
@@ -1168,6 +1233,7 @@ export interface SessionCountDeploymentStats {
 export interface SessionLifetime {
 	readonly disable_expiry_refresh?: boolean;
 	readonly default_duration: number;
+	readonly default_token_lifetime?: number;
 	readonly max_token_lifetime?: number;
 }
 
@@ -1845,6 +1911,7 @@ export interface WorkspaceAgentPortShares {
 
 // From codersdk/workspaceagents.go
 export interface WorkspaceAgentScript {
+	readonly id: string;
 	readonly log_source_id: string;
 	readonly log_path: string;
 	readonly script: string;
@@ -1853,6 +1920,7 @@ export interface WorkspaceAgentScript {
 	readonly run_on_stop: boolean;
 	readonly start_blocks_login: boolean;
 	readonly timeout: number;
+	readonly display_name: string;
 }
 
 // From codersdk/workspaceapps.go
@@ -1869,6 +1937,7 @@ export interface WorkspaceApp {
 	readonly sharing_level: WorkspaceAppSharingLevel;
 	readonly healthcheck: Healthcheck;
 	readonly health: WorkspaceAppHealth;
+	readonly hidden: boolean;
 }
 
 // From codersdk/workspacebuilds.go
@@ -1994,6 +2063,11 @@ export interface WorkspaceResourceMetadata {
 }
 
 // From codersdk/workspaces.go
+export interface WorkspaceTimings {
+	readonly provisioner_timings: Readonly<Array<ProvisionerTiming>>;
+}
+
+// From codersdk/workspaces.go
 export interface WorkspacesRequest extends Pagination {
 	readonly q?: string;
 }
@@ -2024,6 +2098,10 @@ export const AutomaticUpdateses: AutomaticUpdates[] = ["always", "never"]
 export type BuildReason = "autostart" | "autostop" | "initiator"
 export const BuildReasons: BuildReason[] = ["autostart", "autostop", "initiator"]
 
+// From codersdk/deployment.go
+export type CryptoKeyFeature = "oidc_convert" | "tailnet_resume" | "workspace_apps"
+export const CryptoKeyFeatures: CryptoKeyFeature[] = ["oidc_convert", "tailnet_resume", "workspace_apps"]
+
 // From codersdk/workspaceagents.go
 export type DisplayApp = "port_forwarding_helper" | "ssh_helper" | "vscode" | "vscode_insiders" | "web_terminal"
 export const DisplayApps: DisplayApp[] = ["port_forwarding_helper", "ssh_helper", "vscode", "vscode_insiders", "web_terminal"]
@@ -2037,8 +2115,8 @@ export type Entitlement = "entitled" | "grace_period" | "not_entitled"
 export const Entitlements: Entitlement[] = ["entitled", "grace_period", "not_entitled"]
 
 // From codersdk/deployment.go
-export type Experiment = "auto-fill-parameters" | "custom-roles" | "example" | "multi-organization" | "notifications" | "workspace-usage"
-export const Experiments: Experiment[] = ["auto-fill-parameters", "custom-roles", "example", "multi-organization", "notifications", "workspace-usage"]
+export type Experiment = "auto-fill-parameters" | "example" | "notifications" | "workspace-usage"
+export const Experiments: Experiment[] = ["auto-fill-parameters", "example", "notifications", "workspace-usage"]
 
 // From codersdk/deployment.go
 export type FeatureName = "access_control" | "advanced_template_scheduling" | "appearance" | "audit_log" | "browser_only" | "control_shared_ports" | "custom_roles" | "external_provisioner_daemons" | "external_token_encryption" | "high_availability" | "multiple_external_auth" | "multiple_organizations" | "scim" | "template_rbac" | "user_limit" | "user_role_management" | "workspace_batch_actions" | "workspace_proxy"
@@ -2109,8 +2187,8 @@ export type RBACAction = "application_connect" | "assign" | "create" | "delete" 
 export const RBACActions: RBACAction[] = ["application_connect", "assign", "create", "delete", "read", "read_personal", "ssh", "start", "stop", "update", "update_personal", "use", "view_insights"]
 
 // From codersdk/rbacresources_gen.go
-export type RBACResource = "*" | "api_key" | "assign_org_role" | "assign_role" | "audit_log" | "debug_info" | "deployment_config" | "deployment_stats" | "file" | "group" | "group_member" | "license" | "notification_preference" | "notification_template" | "oauth2_app" | "oauth2_app_code_token" | "oauth2_app_secret" | "organization" | "organization_member" | "provisioner_daemon" | "provisioner_keys" | "replicas" | "system" | "tailnet_coordinator" | "template" | "user" | "workspace" | "workspace_dormant" | "workspace_proxy"
-export const RBACResources: RBACResource[] = ["*", "api_key", "assign_org_role", "assign_role", "audit_log", "debug_info", "deployment_config", "deployment_stats", "file", "group", "group_member", "license", "notification_preference", "notification_template", "oauth2_app", "oauth2_app_code_token", "oauth2_app_secret", "organization", "organization_member", "provisioner_daemon", "provisioner_keys", "replicas", "system", "tailnet_coordinator", "template", "user", "workspace", "workspace_dormant", "workspace_proxy"]
+export type RBACResource = "*" | "api_key" | "assign_org_role" | "assign_role" | "audit_log" | "crypto_key" | "debug_info" | "deployment_config" | "deployment_stats" | "file" | "group" | "group_member" | "idpsync_settings" | "license" | "notification_preference" | "notification_template" | "oauth2_app" | "oauth2_app_code_token" | "oauth2_app_secret" | "organization" | "organization_member" | "provisioner_daemon" | "provisioner_keys" | "replicas" | "system" | "tailnet_coordinator" | "template" | "user" | "workspace" | "workspace_dormant" | "workspace_proxy"
+export const RBACResources: RBACResource[] = ["*", "api_key", "assign_org_role", "assign_role", "audit_log", "crypto_key", "debug_info", "deployment_config", "deployment_stats", "file", "group", "group_member", "idpsync_settings", "license", "notification_preference", "notification_template", "oauth2_app", "oauth2_app_code_token", "oauth2_app_secret", "organization", "organization_member", "provisioner_daemon", "provisioner_keys", "replicas", "system", "tailnet_coordinator", "template", "user", "workspace", "workspace_dormant", "workspace_proxy"]
 
 // From codersdk/audit.go
 export type ResourceType = "api_key" | "convert_login" | "custom_role" | "git_ssh_key" | "group" | "health_settings" | "license" | "notifications_settings" | "oauth2_provider_app" | "oauth2_provider_app_secret" | "organization" | "template" | "template_version" | "user" | "workspace" | "workspace_build" | "workspace_proxy"

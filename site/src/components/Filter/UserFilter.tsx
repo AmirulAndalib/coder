@@ -13,14 +13,11 @@ export const useUserFilterMenu = ({
 	value,
 	onChange,
 	enabled,
-}: Pick<
-	UseFilterMenuOptions<SelectFilterOption>,
-	"value" | "onChange" | "enabled"
->) => {
+}: Pick<UseFilterMenuOptions, "value" | "onChange" | "enabled">) => {
 	const { user: me } = useAuthenticated();
 
-	const addMeAsFirstOption = (options: SelectFilterOption[]) => {
-		options = options.filter((option) => option.value !== me.username);
+	const addMeAsFirstOption = (options: readonly SelectFilterOption[]) => {
+		const filtered = options.filter((o) => o.value !== me.username);
 		return [
 			{
 				label: me.username,
@@ -33,7 +30,7 @@ export const useUserFilterMenu = ({
 					/>
 				),
 			},
-			...options,
+			...filtered,
 		];
 	};
 

@@ -10,8 +10,10 @@ import (
 )
 
 func (r *RootCmd) update() *serpent.Command {
-	var parameterFlags workspaceParameterFlags
-
+	var (
+		parameterFlags workspaceParameterFlags
+		bflags         buildFlags
+	)
 	client := new(codersdk.Client)
 	cmd := &serpent.Command{
 		Annotations: workspaceCommand,
@@ -28,11 +30,11 @@ func (r *RootCmd) update() *serpent.Command {
 				return err
 			}
 			if !workspace.Outdated && !parameterFlags.promptRichParameters && !parameterFlags.promptBuildOptions && len(parameterFlags.buildOptions) == 0 {
-				_, _ = fmt.Fprintf(inv.Stdout, "Workspace isn't outdated!\n")
+				_, _ = fmt.Fprintf(inv.Stdout, "Workspace is up-to-date.\n")
 				return nil
 			}
 
-			build, err := startWorkspace(inv, client, workspace, parameterFlags, WorkspaceUpdate)
+			build, err := startWorkspace(inv, client, workspace, parameterFlags, bflags, WorkspaceUpdate)
 			if err != nil {
 				return xerrors.Errorf("start workspace: %w", err)
 			}
@@ -54,5 +56,6 @@ func (r *RootCmd) update() *serpent.Command {
 	}
 
 	cmd.Options = append(cmd.Options, parameterFlags.allOptions()...)
+	cmd.Options = append(cmd.Options, bflags.cliOptions()...)
 	return cmd
 }

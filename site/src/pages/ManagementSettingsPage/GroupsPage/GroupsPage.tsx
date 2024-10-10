@@ -1,7 +1,7 @@
 import GroupAdd from "@mui/icons-material/GroupAddOutlined";
 import Button from "@mui/material/Button";
 import { getErrorMessage } from "api/errors";
-import { groups } from "api/queries/groups";
+import { groupsByOrganization } from "api/queries/groups";
 import { organizationPermissions } from "api/queries/organizations";
 import type { Organization } from "api/typesGenerated";
 import { EmptyState } from "components/EmptyState/EmptyState";
@@ -10,23 +10,21 @@ import { Loader } from "components/Loader/Loader";
 import { SettingsHeader } from "components/SettingsHeader/SettingsHeader";
 import { Stack } from "components/Stack/Stack";
 import { useFeatureVisibility } from "modules/dashboard/useFeatureVisibility";
+import { useManagementSettings } from "modules/management/ManagementSettingsLayout";
 import { type FC, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "react-query";
 import { Navigate, Link as RouterLink, useParams } from "react-router-dom";
 import { pageTitle } from "utils/page";
-import { useOrganizationSettings } from "../ManagementSettingsLayout";
 import GroupsPageView from "./GroupsPageView";
 
 export const GroupsPage: FC = () => {
 	const feats = useFeatureVisibility();
 	const { organization: organizationName } = useParams() as {
-		organization?: string;
+		organization: string;
 	};
-	const groupsQuery = useQuery(
-		organizationName ? groups(organizationName) : { enabled: false },
-	);
-	const { organizations } = useOrganizationSettings();
+	const groupsQuery = useQuery(groupsByOrganization(organizationName));
+	const { organizations } = useManagementSettings();
 	const organization = organizations?.find((o) => o.name === organizationName);
 	const permissionsQuery = useQuery(organizationPermissions(organization?.id));
 
@@ -101,5 +99,8 @@ export const GroupsPage: FC = () => {
 
 export default GroupsPage;
 
-export const getOrganizationNameByDefault = (organizations: Organization[]) =>
-	organizations.find((org) => org.is_default)?.name;
+export const getOrganizationNameByDefault = (
+	organizations: readonly Organization[],
+) => {
+	return organizations.find((org) => org.is_default)?.name;
+};

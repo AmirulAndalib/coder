@@ -11,6 +11,7 @@ import (
 	"golang.org/x/xerrors"
 
 	"cdr.dev/slog"
+	"github.com/coder/quartz"
 
 	"github.com/coder/coder/v2/coderd/database"
 	"github.com/coder/coder/v2/coderd/notifications/dispatch"
@@ -45,6 +46,7 @@ type Manager struct {
 	notifier *notifier
 	handlers map[database.NotificationMethod]Handler
 	method   database.NotificationMethod
+	helpers  template.FuncMap
 
 	metrics *Metrics
 
@@ -52,15 +54,28 @@ type Manager struct {
 
 	runOnce  sync.Once
 	stopOnce sync.Once
+	doneOnce sync.Once
 	stop     chan any
 	done     chan any
+
+	// clock is for testing only
+	clock quartz.Clock
+}
+
+type ManagerOption func(*Manager)
+
+// WithTestClock is used in testing to set the quartz clock on the manager
+func WithTestClock(clock quartz.Clock) ManagerOption {
+	return func(m *Manager) {
+		m.clock = clock
+	}
 }
 
 // NewManager instantiates a new Manager instance which coordinates notification enqueuing and delivery.
 //
 // helpers is a map of template helpers which are used to customize notification messages to use global settings like
 // access URL etc.
-func NewManager(cfg codersdk.NotificationsConfig, store Store, helpers template.FuncMap, metrics *Metrics, log slog.Logger) (*Manager, error) {
+func NewManager(cfg codersdk.NotificationsConfig, store Store, helpers template.FuncMap, metrics *Metrics, log slog.Logger, opts ...ManagerOption) (*Manager, error) {
 	// TODO(dannyk): add the ability to use multiple notification methods.
 	var method database.NotificationMethod
 	if err := method.Scan(cfg.Method.String()); err != nil {
@@ -74,7 +89,7 @@ func NewManager(cfg codersdk.NotificationsConfig, store Store, helpers template.
 		return nil, ErrInvalidDispatchTimeout
 	}
 
-	return &Manager{
+	m := &Manager{
 		log:   log,
 		cfg:   cfg,
 		store: store,
@@ -95,7 +110,14 @@ func NewManager(cfg codersdk.NotificationsConfig, store Store, helpers template.
 		done: make(chan any),
 
 		handlers: defaultHandlers(cfg, helpers, log),
-	}, nil
+		helpers:  helpers,
+
+		clock: quartz.NewReal(),
+	}
+	for _, o := range opts {
+		o(m)
+	}
+	return m, nil
 }
 
 // defaultHandlers builds a set of known handlers; panics if any error occurs as these handlers should be valid at compile time.
@@ -132,7 +154,9 @@ func (m *Manager) Run(ctx context.Context) {
 // events, creating a notifier, and publishing bulk dispatch result updates to the store.
 func (m *Manager) loop(ctx context.Context) error {
 	defer func() {
-		close(m.done)
+		m.doneOnce.Do(func() {
+			close(m.done)
+		})
 		m.log.Info(context.Background(), "notification manager stopped")
 	}()
 
@@ -150,7 +174,7 @@ func (m *Manager) loop(ctx context.Context) error {
 	var eg errgroup.Group
 
 	// Create a notifier to run concurrently, which will handle dequeueing and dispatching notifications.
-	m.notifier = newNotifier(m.cfg, uuid.New(), m.log, m.store, m.handlers, m.metrics)
+	m.notifier = newNotifier(m.cfg, uuid.New(), m.log, m.store, m.handlers, m.helpers, m.metrics, m.clock)
 	eg.Go(func() error {
 		return m.notifier.run(ctx, m.success, m.failure)
 	})
@@ -158,7 +182,7 @@ func (m *Manager) loop(ctx context.Context) error {
 	// Periodically flush notification state changes to the store.
 	eg.Go(func() error {
 		// Every interval, collect the messages in the channels and bulk update them in the store.
-		tick := time.NewTicker(m.cfg.StoreSyncInterval.Value())
+		tick := m.clock.NewTicker(m.cfg.StoreSyncInterval.Value(), "Manager", "storeSync")
 		defer tick.Stop()
 		for {
 			select {
@@ -343,7 +367,9 @@ func (m *Manager) Stop(ctx context.Context) error {
 		// If the notifier hasn't been started, we don't need to wait for anything.
 		// This is only really during testing when we want to enqueue messages only but not deliver them.
 		if m.notifier == nil {
-			close(m.done)
+			m.doneOnce.Do(func() {
+				close(m.done)
+			})
 		} else {
 			m.notifier.stop()
 		}

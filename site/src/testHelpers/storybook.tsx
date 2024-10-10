@@ -7,12 +7,13 @@ import { GlobalSnackbar } from "components/GlobalSnackbar/GlobalSnackbar";
 import { AuthProvider } from "contexts/auth/AuthProvider";
 import { permissionsToCheck } from "contexts/auth/permissions";
 import { DashboardContext } from "modules/dashboard/DashboardProvider";
-import { DeploySettingsContext } from "pages/DeploySettingsPage/DeploySettingsLayout";
+import { ManagementSettingsContext } from "modules/management/ManagementSettingsLayout";
 import type { FC } from "react";
 import { useQueryClient } from "react-query";
 import {
 	MockAppearanceConfig,
 	MockDefaultOrganization,
+	MockDeploymentConfig,
 	MockEntitlements,
 } from "./entities";
 
@@ -20,7 +21,12 @@ export const withDashboardProvider = (
 	Story: FC,
 	{ parameters }: StoryContext,
 ) => {
-	const { features = [], experiments = [] } = parameters;
+	const {
+		features = [],
+		experiments = [],
+		showOrganizations = false,
+		organizations = [MockDefaultOrganization],
+	} = parameters;
 
 	const entitlements: Entitlements = {
 		...MockEntitlements,
@@ -40,9 +46,9 @@ export const withDashboardProvider = (
 			value={{
 				entitlements,
 				experiments,
+				organizations,
+				showOrganizations,
 				appearance: MockAppearanceConfig,
-				organizations: [MockDefaultOrganization],
-				showOrganizations: false,
 			}}
 		>
 			<Story />
@@ -121,17 +127,16 @@ export const withGlobalSnackbar = (Story: FC) => (
 	</>
 );
 
-export const withDeploySettings = (Story: FC, { parameters }: StoryContext) => {
+export const withManagementSettingsProvider = (Story: FC) => {
 	return (
-		<DeploySettingsContext.Provider
+		<ManagementSettingsContext.Provider
 			value={{
-				deploymentValues: {
-					config: parameters.deploymentValues ?? {},
-					options: parameters.deploymentOptions ?? [],
-				},
+				deploymentValues: MockDeploymentConfig,
+				organizations: [MockDefaultOrganization],
+				organization: MockDefaultOrganization,
 			}}
 		>
 			<Story />
-		</DeploySettingsContext.Provider>
+		</ManagementSettingsContext.Provider>
 	);
 };
